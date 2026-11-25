@@ -174,6 +174,7 @@ header{
 .bar-btn:disabled{opacity:.4;cursor:default}
 .bar-btn.primary{background:linear-gradient(#5ae086,#39bf67);color:#0c2e18;box-shadow:inset 0 -3px 0 #26914a}
 .bar-btn.clock{background:linear-gradient(#ffd96b,#f0b835);color:#3b2600;box-shadow:inset 0 -3px 0 #c48f18}
+.bar-btn.swap{background:#2d3f69;color:var(--cyan);box-shadow:inset 0 -3px 0 #1c2845}
 .bar-btn.danger{background:#522838;color:#ffb4c0;box-shadow:inset 0 -3px 0 #381825}
 .bar-pill{font-size:11px;font-weight:900;color:var(--muted);padding:0 6px;white-space:nowrap}
 
@@ -220,6 +221,15 @@ header{
 .tray-chip.f-memory{background:var(--memory);--cd:var(--memory-d)}
 .tray-chip.f-io{background:var(--io);--cd:var(--io-d)}
 .tray-chip small{font-size:10px;opacity:.82;font-weight:800}
+.swap-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
+.swap-label{font-size:11px;font-weight:900;color:var(--muted);margin-right:2px}
+.swap-pill{border:0;border-radius:9px;padding:6px 11px;min-height:34px;font-size:12px;font-weight:900;color:#fff;box-shadow:inset 0 1px 0 #ffffff40,0 2px 0 var(--cd)}
+.swap-pill:hover{filter:brightness(1.1)}
+.swap-pill.f-basic{background:var(--basic);--cd:var(--basic-d)}
+.swap-pill.f-combo{background:var(--combo);--cd:var(--combo-d)}
+.swap-pill.f-math{background:var(--math);--cd:var(--math-d)}
+.swap-pill.f-memory{background:var(--memory);--cd:var(--memory-d)}
+.swap-pill.f-io{background:var(--io);--cd:var(--io-d)}
 
 /* Truth table / live test checklist */
 .tests-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}

@@ -141,6 +141,33 @@ function removeChip(id: string): void {
   render();
 }
 
+function compatibleKinds(kind: ChipKind): ChipKind[] {
+  const spec = CHIPS[kind];
+  const same = level.available.filter(k => {
+    const other = CHIPS[k];
+    return other.inputs.length === spec.inputs.length && other.outputs.length === spec.outputs.length;
+  });
+  const idx = same.indexOf(kind);
+  const rotated = idx >= 0 ? [...same.slice(idx + 1), ...same.slice(0, idx)] : same;
+  return rotated.filter(k => k !== kind);
+}
+
+function swapChip(id: string, nextKind: ChipKind): void {
+  const chip = circuit.chips.find(c => c.id === id);
+  if (!chip || chip.kind === nextKind) return;
+  const cur = CHIPS[chip.kind];
+  const next = CHIPS[nextKind];
+  if (cur.inputs.length !== next.inputs.length || cur.outputs.length !== next.outputs.length) return;
+  pushUndo();
+  chip.kind = nextKind;
+  if (nextKind === 'SWITCH' && chip.value === undefined) chip.value = 0;
+  validation = null;
+  sfx.snap();
+  recompute();
+  persist();
+  render();
+}
+
 function connectWire(fromNode: string, fromPin: number, toNode: string, toPin: number): void {
   if (fromNode === toNode && fromNode.startsWith('IN:')) return;
   if (fromNode === toNode && fromNode.startsWith('OUT:')) return;
@@ -410,6 +437,9 @@ function renderBoard(): string {
     })
     .join('');
 
+  const selChip = selectedChipId ? circuit.chips.find(c => c.id === selectedChipId) : null;
+  const swappable = selChip ? compatibleKinds(selChip.kind) : [];
+
   return `<section class="board-wrap">
     <div class="board">
       <svg class="wires" aria-hidden="true"></svg>
@@ -420,6 +450,7 @@ function renderBoard(): string {
       <div class="board-bar">
         ${!level.sandbox ? `<button class="bar-btn primary" data-action="check">✓ Check Circuit</button>` : ''}
         ${level.hasClock ? `<button class="bar-btn clock" data-action="tick">⚡ Tick Clock</button><button class="bar-btn" data-action="auto-clock">${autoClockTimer ? '❚❚ Stop' : '▶ Auto'}</button><span class="bar-pill">${sim.ticks} ticks</span>` : ''}
+        ${swappable.length ? `<button class="bar-btn swap" data-action="cycle-swap" title="Swap for another ${CHIPS[selChip!.kind].inputs.length}→${CHIPS[selChip!.kind].outputs.length} chip">⇄ ${esc(CHIPS[swappable[0]].short)}</button>` : ''}
         ${selectedChipId ? `<button class="bar-btn danger" data-action="delete-selected">🗑 Remove Chip</button>` : ''}
         <button class="bar-btn" data-action="undo"${undoStack.length ? '' : ' disabled'}>Undo</button>
         <button class="bar-btn" data-action="redo"${redoStack.length ? '' : ' disabled'}>Redo</button>
@@ -477,8 +508,14 @@ function renderPanel(): string {
     : '';
 
   const selChip = selectedChipId ? circuit.chips.find(c => c.id === selectedChipId) : null;
+  const swappable = selChip ? compatibleKinds(selChip.kind) : [];
+  const swapRow = swappable.length
+    ? `<div class="swap-row"><span class="swap-label">Swap with:</span>${swappable
+        .map(k => `<button class="swap-pill f-${CHIPS[k].family}" data-action="swap-chip" data-kind="${k}">${esc(CHIPS[k].short)}</button>`)
+        .join('')}</div>`
+    : '';
   const selInfo = selChip
-    ? `<div class="card"><p class="tray-title">Selected: ${esc(CHIPS[selChip.kind].label)}</p><p>${esc(CHIPS[selChip.kind].description)}</p>${CHIPS[selChip.kind].tip ? `<p style="margin-top:6px;color:var(--cyan);font-size:12px"><b>Tip:</b> ${esc(CHIPS[selChip.kind].tip)}</p>` : ''}</div>`
+    ? `<div class="card"><p class="tray-title">Selected: ${esc(CHIPS[selChip.kind].label)}</p><p>${esc(CHIPS[selChip.kind].description)}</p>${CHIPS[selChip.kind].tip ? `<p style="margin-top:6px;color:var(--cyan);font-size:12px"><b>Tip:</b> ${esc(CHIPS[selChip.kind].tip)}</p>` : ''}${swapRow}</div>`
     : '';
 
   return `<aside class="panel">
@@ -585,6 +622,12 @@ app.addEventListener('click', event => {
   else if (action === 'toggle-mute') { save.muted = !save.muted; setMuted(save.muted); writeSave(save); render(); }
   else if (action === 'toggle-hint') { hintOpen = !hintOpen; render(); }
   else if (action === 'add-chip') { addChip(target.dataset.kind as ChipKind); }
+  else if (action === 'swap-chip' && selectedChipId) { swapChip(selectedChipId, target.dataset.kind as ChipKind); }
+  else if (action === 'cycle-swap' && selectedChipId) {
+    const ch = circuit.chips.find(c => c.id === selectedChipId);
+    const alts = ch ? compatibleKinds(ch.kind) : [];
+    if (alts.length) swapChip(selectedChipId, alts[0]);
+  }
   else if (action === 'delete-selected' && selectedChipId) { removeChip(selectedChipId); }
   else if (action === 'snip-wire') { removeWire(target.dataset.wire!); }
   else if (action === 'undo') { undo(); }
